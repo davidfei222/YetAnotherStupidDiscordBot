@@ -35,10 +35,11 @@ namespace YetAnotherStupidDiscordBot
                 if (DateTime.Now - gameEnd > TimeSpan.FromMinutes(15)) {
                     // Release the lock if it's been more than 15 minutes since the last game
                     this.hasAnnounced = false;
+                    Console.WriteLine("Announced state: " + this.hasAnnounced);
                     return null;
                 }
                 
-                // Figure out which participant the summoner was and check their win state
+                // Figure out which participant the summoner was and gather relevant information from the match details
                 return this.parseMatchData(match, summoner);
             }
             catch (RiotSharpException ex) {
@@ -58,8 +59,7 @@ namespace YetAnotherStupidDiscordBot
                 foreach (var participant in participants) {
                     foreach(var participantIdentity in participantIdentities) {
                         if (participant.ParticipantId == participantIdentity.ParticipantId &&
-                                participantIdentity.Player.SummonerId.Equals(summoner.Id) &&
-                                !participant.Stats.Winner) {
+                                participantIdentity.Player.SummonerId.Equals(summoner.Id)) {
                             // Get champion that was played so we can access its name
                             //var champName = this.api.StaticData.Champions.GetAllAsync(match.GameVersion).Result.Keys[participant.ChampionId];
                             return new RelevantMatchInfo()
@@ -79,7 +79,7 @@ namespace YetAnotherStupidDiscordBot
                 Console.Write(ex);
             }
 
-            // If no losers found or an exception occurs return null
+            // If summoner not found in game or an exception occurs return null.  The first case should not occur
             return null;
         }
     }

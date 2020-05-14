@@ -29,12 +29,6 @@ namespace YetAnotherStupidDiscordBot
 
             this.discordClient.Log += Log;
 
-            // Remember to keep token private or to read it from an 
-            // external source! In this case, we are reading the token 
-            // from an environment variable. If you do not know how to set-up
-            // environment variables, you may find more information on the 
-            // Internet or by using other methods such as reading from 
-            // a configuration.
             await this.discordClient.LoginAsync(TokenType.Bot, "NjEzNTc5ODMzMzgwNzAwMTkx.Xrnejg.QtKtOZkIDnifPVDTQM6_0D0w3tQ");
             await this.discordClient.StartAsync();
 
@@ -55,31 +49,45 @@ namespace YetAnotherStupidDiscordBot
         {
             while (true) {
                 Console.WriteLine("checking last match state for monitored summoners");
-                //this.Log(new LogMessage(LogSeverity.Info, "riot", "checking last match state for monitored summoners"));
+
                 foreach (string summoner in this.monitoredSummoners) {
-                    var lossInfo = this.riotClient.checkLastMatchWin(summoner);
-                    if (lossInfo != null && !this.riotClient.hasAnnounced) {
-                        // jalen_zone id = 691481574335840368
-                        Console.WriteLine(summoner + " lost the game he just finished in the last 30 seconds!");
-                        //this.Log(new LogMessage(LogSeverity.Info, "riot", summoner + " lost his last game!"));
-                        SocketTextChannel channel = this.discordClient.GetChannel(691481574335840368) as SocketTextChannel;
-                        string msg = "@here Summoner " + summoner + " has just lost a game as " + lossInfo.championName + 
-                            "!\nHis k/d/a was " + lossInfo.kills + "/" + lossInfo.deaths + "/" + lossInfo.assists + 
-                            ".\nWhat a fucking loser!";
-                        channel.SendMessageAsync(msg, true);
-                        // Jalen User ID: 279845556166197251
-                        // Jalen Purgatory Role ID: 709492755386204225
-                        // Server ID: 676302856432779264
-                        SocketGuildUser user = this.discordClient.GetUser(279845556166197251) as SocketGuildUser;
-                        SocketRole shitterLandRole = this.discordClient.GetGuild(676302856432779264).GetRole(709492755386204225);
-                        user.AddRoleAsync(shitterLandRole);
-                        // Mark announcement happening so it doesn't keep saying it during the next run of the loop
-                        this.riotClient.hasAnnounced = true;
-                    } else {
-                        Console.WriteLine(summoner + " has not lost a game recently enough to warrant a message.");
-                    }
+                    this.checkSummonerMatchHistory(summoner);
                 }
+
                 Thread.Sleep(30000);
+            }
+        }
+
+        private void checkSummonerMatchHistory(string summoner)
+        {
+            var lastMatchInfo = this.riotClient.checkLastMatchWin(summoner);
+
+            if (lastMatchInfo != null) {
+                // Jalen User ID: 279845556166197251
+                // Jalen Purgatory Role ID: 709492755386204225
+                // Server ID: 676302856432779264
+                Console.WriteLine("Announced state: " + this.riotClient.hasAnnounced);
+                SocketGuildUser user = this.discordClient.GetUser(279845556166197251) as SocketGuildUser;
+                SocketRole shitterLandRole = this.discordClient.GetGuild(676302856432779264).GetRole(709492755386204225);
+
+                if(!lastMatchInfo.winner && !this.riotClient.hasAnnounced) {
+                    // jalen_zone id = 691481574335840368
+                    Console.WriteLine(summoner + " lost the game recently!");
+                    SocketTextChannel channel = this.discordClient.GetChannel(691481574335840368) as SocketTextChannel;
+                    string msg = "@here Summoner " + summoner + " has just lost a game as " + lastMatchInfo.championName + 
+                        "!\nHis k/d/a was " + lastMatchInfo.kills + "/" + lastMatchInfo.deaths + "/" + lastMatchInfo.assists + 
+                        ".\nWhat a fucking loser!";
+                    channel.SendMessageAsync(msg, true);
+                    
+                    user.AddRoleAsync(shitterLandRole);
+                    // Mark announcement happening so it doesn't keep saying it during the next run of the loop
+                    this.riotClient.hasAnnounced = true;
+                } else if (lastMatchInfo.winner) {
+                    // If he won his last game, remove the punishment role
+                    user.RemoveRoleAsync(shitterLandRole);
+                }
+            } else {
+                Console.WriteLine(summoner + " has not played a game recently enough to warrant a message.");
             }
         }
 
