@@ -67,24 +67,23 @@ namespace YetAnotherStupidDiscordBot
                 // Jalen Purgatory Role ID: 709492755386204225
                 // Server ID: 676302856432779264
                 Console.WriteLine("Announced state: " + this.riotClient.hasAnnounced);
-                SocketGuildUser user = this.discordClient.GetUser(279845556166197251) as SocketGuildUser;
-                SocketRole shitterLandRole = this.discordClient.GetGuild(676302856432779264).GetRole(709492755386204225);
+                //SocketGuildUser user = this.discordClient.GetUser(279845556166197251) as SocketGuildUser;
+                //SocketRole shitterLandRole = this.discordClient.GetGuild(676302856432779264).GetRole(709492755386204225);
 
                 if(!lastMatchInfo.winner && !this.riotClient.hasAnnounced) {
-                    // jalen_zone id = 691481574335840368
-                    Console.WriteLine(summoner + " lost the game recently!");
+                    Console.WriteLine(summoner + " lost a game recently!");
                     SocketTextChannel channel = this.discordClient.GetChannel(691481574335840368) as SocketTextChannel;
                     string msg = "@here Summoner " + summoner + " has just lost a game as " + lastMatchInfo.championName + 
                         "!\nHis k/d/a was " + lastMatchInfo.kills + "/" + lastMatchInfo.deaths + "/" + lastMatchInfo.assists + 
                         ".\nWhat a fucking loser!";
                     channel.SendMessageAsync(msg, true);
                     
-                    user.AddRoleAsync(shitterLandRole);
+                    //user.AddRoleAsync(shitterLandRole);
                     // Mark announcement happening so it doesn't keep saying it during the next run of the loop
                     this.riotClient.hasAnnounced = true;
                 } else if (lastMatchInfo.winner) {
                     // If he won his last game, remove the punishment role
-                    user.RemoveRoleAsync(shitterLandRole);
+                    //user.RemoveRoleAsync(shitterLandRole);
                 }
             } else {
                 Console.WriteLine(summoner + " has not played a game recently enough to warrant a message.");
@@ -105,7 +104,8 @@ namespace YetAnotherStupidDiscordBot
                 return;
             }
 
-            if (message.Content == "!ping" && message.Channel.Name.Equals("jalen_zone")) {
+            // jalen_zone channel id = 691481574335840368
+            if (message.Content == "!ping" && message.Channel.Id == 691481574335840368) {
                 await message.Channel.SendMessageAsync("Pong!");
             } else if (Regex.Match(message.Content, "^.*big chungus.*$", RegexOptions.IgnoreCase).Success) {
                 // music_bot channel id = 693200354376024254

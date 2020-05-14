@@ -29,7 +29,7 @@ namespace YetAnotherStupidDiscordBot
                 var matchRef = matchHistory.Matches[0];
                 var match = this.api.Match.GetMatchAsync(this.region, matchRef.GameId).Result;
 
-                // Only try to find out about it if the match occurred within the last 15 minutes
+                // Only give data back if the match occurred within the last 15 minutes
                 DateTime gameEnd = match.GameCreation.ToLocalTime() + match.GameDuration;
                 Console.WriteLine("Last game end time: " + gameEnd + " Current time: " + DateTime.Now);
                 if (DateTime.Now - gameEnd > TimeSpan.FromMinutes(15)) {
