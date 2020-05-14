@@ -41,7 +41,11 @@ namespace YetAnotherStupidDiscordBot
             this.discordClient.MessageReceived += MessageReceived;
 
             // Begin the loop of checking the Riot API for last match updates for each monitored player
-            await Task.Run(matchHistoryCheckLoop);
+            // Running it this way will warn about not using await on this call but that's fine because I want this thread to run infinitely 
+            // in the background which will block this method forever if an await is used.
+            #pragma warning disable 4014
+            Task.Run(matchHistoryCheckLoop);
+            await this.Log(new LogMessage(LogSeverity.Info, "BotMain", "Match history loop thread started"));
 
             // Block this task until the program is closed.
             await Task.Delay(-1);
@@ -54,7 +58,7 @@ namespace YetAnotherStupidDiscordBot
                 //this.Log(new LogMessage(LogSeverity.Info, "riot", "checking last match state for monitored summoners"));
                 foreach (string summoner in this.monitoredSummoners) {
                     var lossInfo = this.riotClient.checkLastMatchWin(summoner);
-                    if (lossInfo != null) {
+                    if (lossInfo != null && !this.riotClient.hasAnnounced) {
                         // jalen_zone id = 691481574335840368
                         Console.WriteLine(summoner + " lost the game he just finished in the last 30 seconds!");
                         //this.Log(new LogMessage(LogSeverity.Info, "riot", summoner + " lost his last game!"));
@@ -63,11 +67,19 @@ namespace YetAnotherStupidDiscordBot
                             "!\nHis k/d/a was " + lossInfo.kills + "/" + lossInfo.deaths + "/" + lossInfo.assists + 
                             ".\nWhat a fucking loser!";
                         channel.SendMessageAsync(msg, true);
+                        // Jalen User ID: 279845556166197251
+                        // Jalen Purgatory Role ID: 709492755386204225
+                        // Server ID: 676302856432779264
+                        SocketGuildUser user = this.discordClient.GetUser(279845556166197251) as SocketGuildUser;
+                        SocketRole shitterLandRole = this.discordClient.GetGuild(676302856432779264).GetRole(709492755386204225);
+                        user.AddRoleAsync(shitterLandRole);
+                        // Mark announcement happening so it doesn't keep saying it during the next run of the loop
+                        this.riotClient.hasAnnounced = true;
                     } else {
                         Console.WriteLine(summoner + " has not lost a game recently enough to warrant a message.");
                     }
                 }
-                Thread.Sleep(25000);
+                Thread.Sleep(30000);
             }
         }
 

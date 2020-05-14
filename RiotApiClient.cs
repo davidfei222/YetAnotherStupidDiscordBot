@@ -11,11 +11,13 @@ namespace YetAnotherStupidDiscordBot
     {
         private RiotApi api;
         private Region region;
+        public bool hasAnnounced;
 
         public RiotApiClient()
         {
-            this.api = RiotApi.GetDevelopmentInstance("RGAPI-1a38476a-67df-4774-a777-f4fc59727e0c");
+            this.api = RiotApi.GetDevelopmentInstance("RGAPI-5cef5870-c2a8-48fa-8ebe-0c940f62fc64");
             this.region = Region.Na;
+            this.hasAnnounced = false;
         }
 
         public RelevantMatchInfo checkLastMatchWin(string summonerName)
@@ -27,10 +29,12 @@ namespace YetAnotherStupidDiscordBot
                 var matchRef = matchHistory.Matches[0];
                 var match = this.api.Match.GetMatchAsync(this.region, matchRef.GameId).Result;
 
-                // Only try to find out about it if the match occurred within the last 30 seconds
-                DateTime gameEnd = match.GameCreation + match.GameDuration;
+                // Only try to find out about it if the match occurred within the last 15 minutes
+                DateTime gameEnd = match.GameCreation.ToLocalTime() + match.GameDuration;
                 Console.WriteLine("Last game end time: " + gameEnd + " Current time: " + DateTime.Now);
-                if (DateTime.Now - gameEnd > TimeSpan.FromSeconds(30)) {
+                if (DateTime.Now - gameEnd > TimeSpan.FromMinutes(15)) {
+                    // Release the lock if it's been more than 15 minutes since the last game
+                    this.hasAnnounced = false;
                     return null;
                 }
                 
@@ -61,7 +65,7 @@ namespace YetAnotherStupidDiscordBot
                             return new RelevantMatchInfo()
                             {
                                 summonerName = summoner.Name,
-                                championName = "Lux",
+                                championName = participant.ChampionId.ToString(),
                                 winner = participant.Stats.Winner,
                                 kills = participant.Stats.Kills,
                                 deaths = participant.Stats.Deaths,
