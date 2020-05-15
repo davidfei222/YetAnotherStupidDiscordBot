@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
 using Discord.Commands;
+using Objects;
 
 namespace YetAnotherStupidDiscordBot
 {
@@ -13,22 +14,18 @@ namespace YetAnotherStupidDiscordBot
     {
         private DiscordSocketClient discordClient;
         private RiotApiClient riotClient;
-        private List<string> monitoredSummoners;
         private string lossAnnounceFmt = "@here Summoner {0} has just lost a game as {1}!\nHis k/d/a was {2}/{3}/{4}.\nWhat a fucking loser!";
+        private RelevantMatchInfo lastMatchChecked;
 
-        public static void Main(string[] args) =>
-            new BotMain().MainAsync().GetAwaiter().GetResult();
-
-        public async Task MainAsync()
-	    {
-            this.monitoredSummoners = new List<string>()
-            {
-                "AnimePenguin"
-            };
-
-            this.riotClient = new RiotApiClient();
+        public BotMain()
+        {
             this.discordClient = new DiscordSocketClient();
+            this.riotClient = new RiotApiClient();
+            this.lastMatchChecked = new RelevantMatchInfo();
+        }
 
+        public async Task DiscordInitAsync()
+	    {
             this.discordClient.Log += Log;
 
             await this.discordClient.LoginAsync(TokenType.Bot, "NjEzNTc5ODMzMzgwNzAwMTkx.Xrnejg.QtKtOZkIDnifPVDTQM6_0D0w3tQ");
@@ -36,58 +33,37 @@ namespace YetAnotherStupidDiscordBot
 
             this.discordClient.MessageReceived += MessageReceived;
 
-            // Begin the loop of checking the Riot API for last match updates for each monitored player
-            // Running it this way will warn about not using await on this call but that's fine because I want this thread to run infinitely 
-            // in the background which will block this method forever if an await is used.
-            #pragma warning disable 4014
-            Task.Run(matchHistoryCheckLoop);
-            await this.Log(new LogMessage(LogSeverity.Info, "BotMain", "Match history loop thread started"));
+            // Tell the bot to listen for a gameFinished event.  Riot client have already been initialized in the bot before this call
+            this.riotClient.gameFinished += gameFinished;
 
             // Block this task until the program is closed.
             await Task.Delay(-1);
 	    }
 
-        private void matchHistoryCheckLoop()
+        private int gameFinished(RelevantMatchInfo lastMatchInfo)
         {
-            while (true) {
-                Console.WriteLine("checking last match state for monitored summoners");
+            // Jalen User ID: 279845556166197251
+            // Sucks At League of Legends Role ID: 709492755386204225
+            // Server ID: 676302856432779264
+            SocketGuild server = this.discordClient.GetGuild(676302856432779264);
+            SocketGuildUser user = server.GetUser(279845556166197251);
+            SocketRole shitterLandRole = server.GetRole(709492755386204225);
 
-                foreach (string summoner in this.monitoredSummoners) {
-                    this.checkSummonerMatchHistory(summoner);
-                }
-
-                Thread.Sleep(30000);
+            // If the last match has already been detected recently don't do anything
+            if (lastMatchInfo.finishTime.Equals(this.lastMatchChecked.finishTime)) {
+                return 1;
+            } else if (!lastMatchInfo.winner) {
+                // If game lost, announce the loss and assign the punishment role
+                SocketTextChannel channel = this.discordClient.GetChannel(691481574335840368) as SocketTextChannel;
+                string msg = String.Format(this.lossAnnounceFmt, lastMatchInfo.summonerName, lastMatchInfo.championName, lastMatchInfo.kills, lastMatchInfo.deaths, lastMatchInfo.assists);
+                channel.SendMessageAsync(msg, true);
+                user.AddRoleAsync(shitterLandRole);
+            } else if (lastMatchInfo.winner) {
+                // If game won, remove the punishment role
+                user.RemoveRoleAsync(shitterLandRole);
             }
-        }
 
-        private void checkSummonerMatchHistory(string summoner)
-        {
-            var lastMatchInfo = this.riotClient.checkLastMatchWin(summoner);
-
-            if (lastMatchInfo != null) {
-                // Jalen User ID: 279845556166197251
-                // Jalen Purgatory Role ID: 709492755386204225
-                // Server ID: 676302856432779264
-                Console.WriteLine("Announced state: " + this.riotClient.hasAnnounced);
-                SocketGuild server = this.discordClient.GetGuild(676302856432779264);
-                SocketGuildUser user = server.GetUser(279845556166197251);
-                SocketRole shitterLandRole = server.GetRole(709492755386204225);
-
-                if(!lastMatchInfo.winner && !this.riotClient.hasAnnounced) {
-                    Console.WriteLine(summoner + " lost a game recently!");
-                    SocketTextChannel channel = this.discordClient.GetChannel(691481574335840368) as SocketTextChannel;
-                    string msg = String.Format(this.lossAnnounceFmt, summoner, lastMatchInfo.championName, lastMatchInfo.kills, lastMatchInfo.deaths, lastMatchInfo.assists);
-                    channel.SendMessageAsync(msg, true);
-                    user.AddRoleAsync(shitterLandRole);
-                    // Mark announcement happening so it doesn't keep saying it during the next run of the loop
-                    this.riotClient.hasAnnounced = true;
-                } else if (lastMatchInfo.winner) {
-                    // If he won his last game, remove the punishment role
-                    user.RemoveRoleAsync(shitterLandRole);
-                }
-            } else {
-                Console.WriteLine(summoner + " has not played a game recently enough to warrant a message.");
-            }
+            return 0;
         }
 
         private Task Log(LogMessage msg)
@@ -114,9 +90,9 @@ namespace YetAnotherStupidDiscordBot
             } else if (Regex.Match(message.Content, "^.*big chungus.*$", RegexOptions.IgnoreCase).Success) {
                 await this.JoinVoiceJustToPlayBigChungus();
             } else if (message.Content.Equals("-shitterland")) {
-                user.AddRoleAsync(shitterLandRole);
+                await user.AddRoleAsync(shitterLandRole);
             } else if (message.Content.Equals("-unshitterland")) {
-                user.RemoveRoleAsync(shitterLandRole);
+                await user.RemoveRoleAsync(shitterLandRole);
             }
         }
 
@@ -128,6 +104,16 @@ namespace YetAnotherStupidDiscordBot
             var audioClient = await voiceChannel.ConnectAsync(true, true);
             var musicChannel = this.discordClient.GetChannel(693200354376024254) as SocketTextChannel;
             await musicChannel.SendMessageAsync("-play big chungus 2");
+        }
+
+        public static void Main(string[] args) 
+        {
+            var bot = new BotMain();
+
+            // Start the match history check loop
+            Task.Run(() => bot.riotClient.matchHistoryCheckLoop());
+
+            bot.DiscordInitAsync().GetAwaiter().GetResult();
         }
     }
 }
