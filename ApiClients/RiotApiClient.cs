@@ -1,6 +1,5 @@
 using System;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Collections.Generic;
 using RiotSharp;
 using RiotSharp.Misc;
@@ -8,7 +7,7 @@ using RiotSharp.Endpoints.MatchEndpoint;
 using RiotSharp.Endpoints.SummonerEndpoint;
 using Objects;
 
-namespace YetAnotherStupidDiscordBot 
+namespace ApiClients
 {
     class RiotApiClient
     {
@@ -37,8 +36,15 @@ namespace YetAnotherStupidDiscordBot
                 Console.WriteLine("checking last match state for monitored summoners");
 
                 foreach (string summoner in this.monitoredSummoners) {
-                    var lastMatchInfo = this.checkLastMatchWin(summoner);
-                    if (lastMatchInfo != null) {
+                    var lastMatchInfo = this.retrieveLastMatchData(summoner);
+                    Console.WriteLine("Last game end time: " + lastMatchInfo.finishTime + " Current time: " + DateTime.Now);
+
+                    // Only fire off the gameFinished event for games that happened recently
+                    if (lastMatchInfo == null) {
+                        Console.WriteLine("Could not retrieve info about last match for " + summoner + ".");
+                    } else if (DateTime.Now - lastMatchInfo.finishTime > TimeSpan.FromMinutes(15)) {
+                        Console.WriteLine("Summoner " + lastMatchInfo.summonerName + " has not lost a game recently enough to warrant a loss check.");
+                    } else {
                         gameFinished(lastMatchInfo);
                     }
                 }
@@ -47,7 +53,7 @@ namespace YetAnotherStupidDiscordBot
             }
         }
 
-        private RelevantMatchInfo checkLastMatchWin(string summonerName)
+        private RelevantMatchInfo retrieveLastMatchData(string summonerName)
         {
             try {
                 // Retrieve information about the last match the summoner played
@@ -55,15 +61,7 @@ namespace YetAnotherStupidDiscordBot
                 var matchHistory = this.api.Match.GetMatchListAsync(this.region, summoner.AccountId).Result;
                 var matchRef = matchHistory.Matches[0];
                 var match = this.api.Match.GetMatchAsync(this.region, matchRef.GameId).Result;
-
-                // Only return data about games that happened recently
-                DateTime gameEnd = match.GameCreation.ToLocalTime() + match.GameDuration;
-                Console.WriteLine("Last game end time: " + gameEnd + " Current time: " + DateTime.Now);
-                if (DateTime.Now - gameEnd > TimeSpan.FromMinutes(15)) {
-                    Console.WriteLine("Summoner " + summonerName + " has not lost a game recently enough to warrant a loss check.");
-                    return null;
-                }
-                
+ 
                 // Figure out which participant the summoner was and gather relevant information from the match details
                 return this.parseMatchData(match, summoner);
             }
