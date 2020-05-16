@@ -13,19 +13,19 @@ namespace ApiClients
     {
         private RiotApi api;
         private Region region;
-        public bool hasAnnounced;
+        private bool discordStarted;
         public event Func<RelevantMatchInfo, int> gameFinished = delegate{ return 0; };
-        public List<string> monitoredSummoners;
 
         public RiotApiClient()
         {
             this.api = RiotApi.GetDevelopmentInstance("RGAPI-60224a15-404c-4c7c-a655-475a1d263d32");
             this.region = Region.Na;
-            this.hasAnnounced = false;
-            this.monitoredSummoners = new List<string>()
-            {
-                "AnimePenguin"
-            };
+            this.discordStarted = false;
+        }
+
+        public void signalDiscordReady()
+        {
+            this.discordStarted = true;
         }
 
         // This method runs in its own thread to continually check for a recently finished game. 
@@ -33,18 +33,18 @@ namespace ApiClients
         public void matchHistoryCheckLoop()
         {
             while (true) {
-                Console.WriteLine("checking last match state for monitored summoners");
+                Console.WriteLine("checking last match state for monitored summoners.  Discord client ready: " + this.discordStarted);
 
-                foreach (string summoner in this.monitoredSummoners) {
+                foreach (string summoner in SummonerDiscordIdMappings.mappings.Keys) {
                     var lastMatchInfo = this.retrieveLastMatchData(summoner);
                     Console.WriteLine("Last game end time: " + lastMatchInfo.finishTime + " Current time: " + DateTime.Now);
 
-                    // Only fire off the gameFinished event for games that happened recently
+                    // Only fire off the gameFinished event for games that happened recently, and only if the discord client is ready to handle it
                     if (lastMatchInfo == null) {
                         Console.WriteLine("Could not retrieve info about last match for " + summoner + ".");
                     } else if (DateTime.Now - lastMatchInfo.finishTime > TimeSpan.FromMinutes(15)) {
                         Console.WriteLine("Summoner " + lastMatchInfo.summonerName + " has not lost a game recently enough to warrant a loss check.");
-                    } else {
+                    } else if (this.discordStarted) {
                         gameFinished(lastMatchInfo);
                     }
                 }
@@ -53,7 +53,7 @@ namespace ApiClients
             }
         }
 
-        private RelevantMatchInfo retrieveLastMatchData(string summonerName)
+        public RelevantMatchInfo retrieveLastMatchData(string summonerName)
         {
             try {
                 // Retrieve information about the last match the summoner played
