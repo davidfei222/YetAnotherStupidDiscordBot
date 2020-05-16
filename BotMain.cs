@@ -9,14 +9,11 @@ namespace YetAnotherStupidDiscordBot
 
         public BotMain()
         {
-            // Server ID: 676302856432779264
-            this.discordClient = new DiscordApiClient(676302856432779264);
+            this.discordClient = new DiscordApiClient();
         }
 
         public static void Main(string[] args) 
         {
-            var champsClient = new LolChampionsClient();
-            champsClient.retrieveChampionData().GetAwaiter().GetResult();
             var bot = new BotMain();
 
             // Start the match history check loop in a separate thread
