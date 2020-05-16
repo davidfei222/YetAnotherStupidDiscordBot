@@ -31,7 +31,7 @@ namespace ApiClients
         }
 
         public async Task DiscordInitAsync()
-	    {
+        {
             this.discordSocketClient.Log += Log;
 
             await this.discordSocketClient.LoginAsync(TokenType.Bot, "NjEzNTc5ODMzMzgwNzAwMTkx.Xrnejg.QtKtOZkIDnifPVDTQM6_0D0w3tQ");
@@ -46,7 +46,7 @@ namespace ApiClients
 
             // Let the bot run infinitely
             await Task.Delay(-1);
-	    }
+        }
 
         private Task Ready()
         {
@@ -122,7 +122,8 @@ namespace ApiClients
         }
 
         [Command("join", RunMode = RunMode.Async)] 
-        private async Task JoinVoiceJustToPlayBigChungus() {
+        private async Task JoinVoiceJustToPlayBigChungus()
+        {
             // pizza_bois voice channel id = 676302856432779303
             // music_bot channel id = 693200354376024254
             var voiceChannel = this.discordSocketClient.GetChannel(676302856432779303) as SocketVoiceChannel;

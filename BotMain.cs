@@ -15,6 +15,8 @@ namespace YetAnotherStupidDiscordBot
 
         public static void Main(string[] args) 
         {
+            var champsClient = new LolChampionsClient();
+            champsClient.retrieveChampionData().GetAwaiter().GetResult();
             var bot = new BotMain();
 
             // Start the match history check loop in a separate thread

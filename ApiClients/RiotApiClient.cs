@@ -15,12 +15,16 @@ namespace ApiClients
         private Region region;
         private bool discordStarted;
         public event Func<RelevantMatchInfo, int> gameFinished = delegate{ return 0; };
+        private LolChampionsClient champsClient;
 
         public RiotApiClient()
         {
-            this.api = RiotApi.GetDevelopmentInstance("RGAPI-60224a15-404c-4c7c-a655-475a1d263d32");
+            this.api = RiotApi.GetDevelopmentInstance("RGAPI-3afede4e-f745-4b0b-befe-f2ab1b845c38");
             this.region = Region.Na;
             this.discordStarted = false;
+            this.champsClient = new LolChampionsClient();
+            // Retrieve all of the champion data on startup
+            this.champsClient.retrieveChampionData().GetAwaiter().GetResult();
         }
 
         public void signalDiscordReady()
@@ -82,12 +86,13 @@ namespace ApiClients
                 foreach(var participantIdentity in participantIdentities) {
                     if (participant.ParticipantId == participantIdentity.ParticipantId && participantIdentity.Player.SummonerId.Equals(summoner.Id)) {
                         // Get champion that was played so we can access its name
-                        //var champName = this.api.StaticData.Champions.GetAllAsync(match.GameVersion).Result.Keys[participant.ChampionId];
+                        var champName = this.champsClient.retrieveChampionByKey(participant.ChampionId.ToString()).name;
+                        
                         return new RelevantMatchInfo()
                         {
                             finishTime = match.GameCreation.ToLocalTime() + match.GameDuration,
                             summonerName = summoner.Name,
-                            championName = participant.ChampionId.ToString(),
+                            championName = champName,
                             winner = participant.Stats.Winner,
                             kills = participant.Stats.Kills,
                             deaths = participant.Stats.Deaths,
