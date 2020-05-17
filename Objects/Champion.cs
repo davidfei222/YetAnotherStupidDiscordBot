@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace Objects
 {
-    class Champion
+    public class Champion
     {
         public string version {get; set;}
         public string id {get; set;}

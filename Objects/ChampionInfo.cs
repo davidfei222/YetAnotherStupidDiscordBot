@@ -1,6 +1,6 @@
 namespace Objects
 {
-    class ChampionInfo
+    public class ChampionInfo
     {
         public int attack {get; set;}
         public int defense {get; set;}

@@ -2,7 +2,7 @@ using System;
 
 namespace Objects
 {
-    class RelevantMatchInfo
+    public class RelevantMatchInfo
     {
         public DateTime finishTime {get; set;}
         public string summonerName {get; set;}

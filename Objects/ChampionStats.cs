@@ -1,6 +1,6 @@
 namespace Objects
 {
-    class ChampionStats
+    public class ChampionStats
     {
         public double hp {get; set;}
         public double hpperlevel {get; set;}

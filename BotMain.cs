@@ -3,24 +3,17 @@ using ApiClients;
 
 namespace YetAnotherStupidDiscordBot
 {
-    class BotMain
+    public class BotMain
     {
-        private DiscordApiClient discordClient;
-
-        public BotMain()
-        {
-            this.discordClient = new DiscordApiClient();
-        }
-
         public static void Main(string[] args) 
         {
-            var bot = new BotMain();
+            var bot = new DiscordApiClient();
 
             // Start the match history check loop in a separate thread
-            bot.discordClient.runMatchHistoryCheckLoop();
+            bot.runMatchHistoryCheckLoop();
             
             // Log in the discord client.
-            bot.discordClient.DiscordInitAsync().GetAwaiter().GetResult();
+            bot.DiscordInitAsync().GetAwaiter().GetResult();
         }
     }
 }

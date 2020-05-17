@@ -1,6 +1,6 @@
 namespace Objects
 {
-    class ChampionImage
+    public class ChampionImage
     {
         public string full {get; set;}
         public string sprite {get; set;}

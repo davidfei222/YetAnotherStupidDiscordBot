@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using System.Reflection;
 using Discord;
 using Discord.WebSocket;
 using Discord.Commands;
@@ -7,20 +8,18 @@ using Objects;
 
 namespace ApiClients
 {
-    class DiscordApiClient
+    public class DiscordApiClient
     {
-        public DiscordSocketClient discordSocketClient;
+        private DiscordSocketClient discordSocketClient;
+        private CommandService commandService;
         private string lossAnnounceFmt = "@here Summoner {0} has just lost a game as {1}!\nHis k/d/a was {2}/{3}/{4}.\nWhat a fucking loser!";
         private RelevantMatchInfo lastMatchChecked;
         private RiotApiClient riotApiClient;
-        private ulong serverId = 676302856432779264; // Quarantine Bois server
-        private ulong punishmentRoleId = 709492755386204225; // Sucks At League of Legends role
-        private ulong jalenZoneId = 691481574335840368; // jalen_zone channel
-        private ulong pizzaBoisId = 676302856432779303; // pizza_bois voice channel
 
         public DiscordApiClient()
         {
             this.discordSocketClient = new DiscordSocketClient();
+            this.commandService = new CommandService();
             this.riotApiClient = new RiotApiClient();
             // Start with a blank last match checked
             this.lastMatchChecked = new RelevantMatchInfo();
@@ -39,11 +38,11 @@ namespace ApiClients
             await this.discordSocketClient.StartAsync();
 
             // Register Discord API event handlers
-            this.discordSocketClient.MessageReceived += MessageReceived;
+            this.discordSocketClient.MessageReceived += HandleCommandAsync;
             this.discordSocketClient.Ready += Ready;
 
-            // Register Riot client event handlers
-            this.riotApiClient.gameFinished += this.gameFinished;
+            // Register Discord commands
+            await this.commandService.AddModulesAsync(assembly: Assembly.GetEntryAssembly(), services: null);
 
             // Let the bot run infinitely
             await Task.Delay(-1);
@@ -51,12 +50,13 @@ namespace ApiClients
 
         private Task Ready()
         {
-            // Let riotApiClient know that discord is ready for its events
-            this.riotApiClient.signalDiscordReady();
+            // Register Riot client event handlers once Discord is ready
+            this.riotApiClient.gameFinished += this.gameFinishedHandler;
+            this.Log(new LogMessage(LogSeverity.Info, "Gateway", "Riot gameFinished event handler registered"));
             return Task.CompletedTask;
         }
 
-        private int gameFinished(RelevantMatchInfo lastMatchInfo)
+        private int gameFinishedHandler(RelevantMatchInfo lastMatchInfo)
         {
             Console.WriteLine("A recently finished game was detected for " + lastMatchInfo.summonerName + ".");
 
@@ -67,14 +67,14 @@ namespace ApiClients
             } else if (!lastMatchInfo.winner) {
                 Console.WriteLine("The game was lost!");
                 // If game lost, announce the loss and assign the punishment role
-                SocketTextChannel channel = this.discordSocketClient.GetChannel(this.jalenZoneId) as SocketTextChannel;
+                SocketTextChannel channel = this.discordSocketClient.GetChannel(StaticData.jalenZoneId) as SocketTextChannel;
                 string msg = String.Format(this.lossAnnounceFmt, lastMatchInfo.summonerName, lastMatchInfo.championName, lastMatchInfo.kills, lastMatchInfo.deaths, lastMatchInfo.assists);
                 channel.SendMessageAsync(msg, true);
-                this.addOrRemoveRole(SummonerDiscordIdMappings.mappings[lastMatchInfo.summonerName], this.punishmentRoleId, true);
+                this.addOrRemoveRole(StaticData.summonerToDiscordMappings[lastMatchInfo.summonerName], StaticData.punishmentRoleId, true);
             } else if (lastMatchInfo.winner) {
                 Console.WriteLine("The game was won!");
                 // If game won, remove the punishment role
-                this.addOrRemoveRole(SummonerDiscordIdMappings.mappings[lastMatchInfo.summonerName], this.punishmentRoleId, false);
+                this.addOrRemoveRole(StaticData.summonerToDiscordMappings[lastMatchInfo.summonerName], StaticData.punishmentRoleId, false);
             }
 
             this.lastMatchChecked = lastMatchInfo;
@@ -84,7 +84,7 @@ namespace ApiClients
 
         private void addOrRemoveRole(ulong userId, ulong roleId, bool add)
         {
-            SocketGuild server = this.discordSocketClient.GetGuild(this.serverId);
+            SocketGuild server = this.discordSocketClient.GetGuild(StaticData.serverId);
             SocketGuildUser user = server.GetUser(userId);
             SocketRole role = server.GetRole(roleId);
 
@@ -101,29 +101,35 @@ namespace ApiClients
 	        return Task.CompletedTask;
         }
 
-        private async Task MessageReceived(SocketMessage message)
+        private async Task HandleCommandAsync(SocketMessage messageParam)
         {
-            await this.Log(new LogMessage(LogSeverity.Info, message.Author.Username, "message received in " + message.Channel.Name));
-            // Prevent infinite message loops by ignoring everything that bots say (including itself)
-            if (message.Author.IsBot) {
+            await this.Log(new LogMessage(LogSeverity.Info, messageParam.Author.Username, "message received in " + messageParam.Channel.Name));
+            // Don't process the command if it was a system message
+            var message = messageParam as SocketUserMessage;
+            if (message == null) return;
+
+            // Create a number to track where the prefix ends and the command begins
+            int argPos = 0;
+
+            // Determine if the message is a command based on the prefix and make sure no bots trigger commands
+            if (!(message.HasCharPrefix('!', ref argPos) || 
+                    message.HasMentionPrefix(this.discordSocketClient.CurrentUser, ref argPos)) ||
+                    message.Author.IsBot) {
                 return;
             }
 
-            // jalen_zone channel id = 691481574335840368
-            if (message.Content == "!ping" && message.Channel.Id == this.jalenZoneId) {
-                await message.Channel.SendMessageAsync("Pong!");
-            } else if (message.Content.Equals("-shitterland")) {
-                this.addOrRemoveRole(SummonerDiscordIdMappings.mappings["AnimePenguin"], this.punishmentRoleId, true);
-            } else if (message.Content.Equals("-unshitterland")) {
-                this.addOrRemoveRole(SummonerDiscordIdMappings.mappings["AnimePenguin"], this.punishmentRoleId, false);
-            }
-        }
+            // Create a WebSocket-based command context based on the message
+            var context = new SocketCommandContext(this.discordSocketClient, message);
 
-        [Command("join", RunMode = RunMode.Async)]
-        private async Task JoinVoiceJustToPlayBigChungus()
-        {
-            var voiceChannel = this.discordSocketClient.GetChannel(this.pizzaBoisId) as SocketVoiceChannel;
-            var audioClient = await voiceChannel.ConnectAsync(true, true);
+            // Execute the command with the command context we just
+            // created, along with the service provider for precondition checks.
+            
+            // Keep in mind that result does not indicate a return value
+            // rather an object stating if the command executed successfully.
+            var result = await this.commandService.ExecuteAsync(
+                context: context, 
+                argPos: argPos,
+                services: null);
         }
     }
 }
