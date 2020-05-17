@@ -34,10 +34,10 @@ namespace ApiClients
         {
             this.discordSocketClient.Log += Log;
 
-            await this.discordSocketClient.LoginAsync(TokenType.Bot, "NjEzNTc5ODMzMzgwNzAwMTkx.Xrnejg.QtKtOZkIDnifPVDTQM6_0D0w3tQ");
+            await this.discordSocketClient.LoginAsync(TokenType.Bot, Environment.GetEnvironmentVariable("DiscordToken"));
             await this.discordSocketClient.StartAsync();
 
-            // Register Discord API event handlers
+            // Register Discord event handlers
             this.discordSocketClient.MessageReceived += HandleCommandAsync;
             this.discordSocketClient.Ready += Ready;
 
@@ -50,9 +50,12 @@ namespace ApiClients
 
         private Task Ready()
         {
-            // Register Riot client event handlers once Discord is ready
+            // Register Riot client event handlers once Discord is ready.
+            // Clear all existing event handlers before adding this on to prevent multiple copies of the event handler being registered.
+            // (If Discord forces a reconnect for whatever reason this tends to happen)
+            this.riotApiClient.gameFinished -= this.gameFinishedHandler;
             this.riotApiClient.gameFinished += this.gameFinishedHandler;
-            this.Log(new LogMessage(LogSeverity.Info, "Gateway", "Riot gameFinished event handler registered"));
+            this.Log(new LogMessage(LogSeverity.Info, "Gateway", "gameFinished event handler registered"));
             return Task.CompletedTask;
         }
 
@@ -123,13 +126,8 @@ namespace ApiClients
 
             // Execute the command with the command context we just
             // created, along with the service provider for precondition checks.
-            
-            // Keep in mind that result does not indicate a return value
-            // rather an object stating if the command executed successfully.
-            var result = await this.commandService.ExecuteAsync(
-                context: context, 
-                argPos: argPos,
-                services: null);
+            var result = await this.commandService.ExecuteAsync(context: context, argPos: argPos, services: null);
+            if (!result.IsSuccess) Console.WriteLine(result.ErrorReason);
         }
     }
 }

@@ -18,7 +18,7 @@ namespace ApiClients
 
         public RiotApiClient()
         {
-            this.api = RiotApi.GetDevelopmentInstance("RGAPI-3afede4e-f745-4b0b-befe-f2ab1b845c38");
+            this.api = RiotApi.GetDevelopmentInstance(Environment.GetEnvironmentVariable("RiotToken"));
             this.region = Region.Na;
             this.champsClient = new LolChampionsClient();
             // Retrieve all of the champion data on startup
