@@ -30,13 +30,13 @@ namespace ApiClients
         public async Task DiscordInitAsync()
         {
             this.discordSocketClient.Log += Log;
+            this.discordSocketClient.Ready += Ready;
 
             await this.discordSocketClient.LoginAsync(TokenType.Bot, Environment.GetEnvironmentVariable("DiscordToken"));
             await this.discordSocketClient.StartAsync();
 
             // Register Discord event handlers
             this.discordSocketClient.MessageReceived += HandleCommandAsync;
-            this.discordSocketClient.Ready += Ready;
 
             // Register Discord commands
             await this.commandService.AddModulesAsync(assembly: Assembly.GetEntryAssembly(), services: null);
@@ -99,7 +99,7 @@ namespace ApiClients
             } else if (!lastMatchInfo.winner) {
                 Console.WriteLine("The game was lost!");
                 // If game lost, announce the loss and assign the punishment role
-                SocketTextChannel channel = this.discordSocketClient.GetChannel(StaticData.jalenZoneId) as SocketTextChannel;
+                SocketTextChannel channel = this.discordSocketClient.GetChannel(StaticData.announcementChannelId) as SocketTextChannel;
                 string msg = String.Format(this.lossAnnounceFmt, lastMatchInfo.summonerName, lastMatchInfo.championName, lastMatchInfo.kills, lastMatchInfo.deaths, lastMatchInfo.assists);
                 channel.SendMessageAsync(msg, true);
                 this.addOrRemoveRole(StaticData.summonerToDiscordMappings[lastMatchInfo.summonerName], StaticData.punishmentRoleId, true);

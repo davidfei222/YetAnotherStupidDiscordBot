@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using Objects;
@@ -9,6 +10,7 @@ namespace DiscordCommands
     {
         [Command("punishjalen")]
 	    [Summary("Assigns Jalen the punishment role for test purposes")]
+        [RequireUserPermission(GuildPermission.Administrator)]
         public async Task PunishJalen()
         {
             SocketRole punishmentRole = this.Context.Guild.GetRole(StaticData.punishmentRoleId); 
@@ -18,6 +20,7 @@ namespace DiscordCommands
 
         [Command("unpunishjalen")]
 	    [Summary("Removes the punishment role from Jalen for test purposes")]
+        [RequireUserPermission(GuildPermission.Administrator)]
         public async Task UnPunishJalen()
         {
             SocketRole punishmentRole = this.Context.Guild.GetRole(StaticData.punishmentRoleId); 
