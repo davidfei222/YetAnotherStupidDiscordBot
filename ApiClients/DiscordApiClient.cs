@@ -125,6 +125,14 @@ namespace ApiClients
             } else {
                 user.RemoveRoleAsync(role);
             }
-        }  
+        }
+
+        // Logs the Discord client out when the program is exited
+        public void programExitHandler()
+        {
+            this.Log(new LogMessage(LogSeverity.Info, "Gateway", "Process termination caught.  Logging out of Discord"));
+            this.discordSocketClient.LogoutAsync().GetAwaiter().GetResult();
+            Environment.Exit(0);
+        }
     }
 }

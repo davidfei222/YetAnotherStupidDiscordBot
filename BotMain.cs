@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using ApiClients;
 
@@ -9,6 +10,10 @@ namespace YetAnotherStupidDiscordBot
         {
             var riot = new RiotApiClient();
             var discord = new DiscordApiClient(riot);
+
+            // Register Ctrl-C and process exit handlers
+            //AppDomain.CurrentDomain.ProcessExit += new EventHandler((object sender, EventArgs args) => {discord.programExitHandler();});
+            Console.CancelKeyPress += new ConsoleCancelEventHandler((object sender, ConsoleCancelEventArgs args) => {discord.programExitHandler();});
 
             // Start the match history check loop in a separate thread
             Task.Run(riot.matchHistoryCheckLoop);
