@@ -30,6 +30,8 @@ namespace ApiClients
             Task.Run(this.riotApiClient.matchHistoryCheckLoop);
         }
 
+        //public static void Main(string[] args) => new DiscordApiClient().DiscordInitAsync().GetAwaiter().GetResult();
+
         public async Task DiscordInitAsync()
         {
             this.discordSocketClient.Log += Log;

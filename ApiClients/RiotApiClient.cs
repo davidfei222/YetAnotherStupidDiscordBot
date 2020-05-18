@@ -25,8 +25,10 @@ namespace ApiClients
             this.champsClient.retrieveChampionData().GetAwaiter().GetResult();
         }
 
-        // This method runs in its own thread to continually check for a recently finished game. 
-        // When a recently finished game is detected, the gameFinished event is fired off.
+        //public static void Main(string[] args) => new RiotApiClient().matchHistoryCheckLoop();
+
+        // This method runs the core functionality of this component - checking match history and sending info over to the 
+        // Discord client whenever it detects a game loss.
         public void matchHistoryCheckLoop()
         {
             while (true) {
@@ -53,17 +55,21 @@ namespace ApiClients
         public RelevantMatchInfo retrieveLastMatchData(string summonerName)
         {
             try {
+                Console.WriteLine("Retrieving summoner info...");
                 // Retrieve information about the last match the summoner played
-                var summoner = this.api.Summoner.GetSummonerByNameAsync(Region.Na, summonerName).Result;
-                var matchHistory = this.api.Match.GetMatchListAsync(this.region, summoner.AccountId).Result;
+                var summoner = this.api.Summoner.GetSummonerByNameAsync(Region.Na, summonerName).GetAwaiter().GetResult();
+                Console.WriteLine("Retrieving match list...");
+                var matchHistory = this.api.Match.GetMatchListAsync(this.region, summoner.AccountId).GetAwaiter().GetResult();
                 var matchRef = matchHistory.Matches[0];
-                var match = this.api.Match.GetMatchAsync(this.region, matchRef.GameId).Result;
- 
+                Console.WriteLine("Retrieving last match info...");
+                var match = this.api.Match.GetMatchAsync(this.region, matchRef.GameId).GetAwaiter().GetResult();
+                
+                Console.WriteLine("Parsing last match info...");
                 // Figure out which participant the summoner was and gather relevant information from the match details
                 return this.parseMatchData(match, summoner);
             }
             catch (RiotSharpException ex) {
-                Console.Write(ex);
+                Console.WriteLine(ex.Message);
             }
             
             // If an exception occurs return null
