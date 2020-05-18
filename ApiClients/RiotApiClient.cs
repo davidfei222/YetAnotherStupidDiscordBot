@@ -35,12 +35,15 @@ namespace ApiClients
                 Console.WriteLine("checking last match state for monitored summoners."); // Discord client ready: " + this.discordStarted);
 
                 foreach (string summoner in StaticData.summonerToDiscordMappings.Keys) {
+                    CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
                     RelevantMatchInfo lastMatchInfo = null;
-                    var lastMatchRetrieval = Task.Run(() => this.retrieveLastMatchData(summoner));
 
-                    if (lastMatchRetrieval.Wait(TimeSpan.FromSeconds(30))) {
+                    var lastMatchRetrieval = Task.Factory.StartNew(() => this.retrieveLastMatchData(summoner), cancelTokenSource.Token);
+
+                    if (lastMatchRetrieval.Wait(TimeSpan.FromSeconds(10))) {
                         lastMatchInfo = lastMatchRetrieval.Result;
                     } else {
+                        cancelTokenSource.Cancel();
                         Console.WriteLine("A request has timed out.");
                         continue;
                     }
@@ -72,6 +75,7 @@ namespace ApiClients
                 var matchRef = matchHistory.Matches[0];
                 Console.WriteLine("Retrieving last match info...");
                 var match = this.api.Match.GetMatchAsync(this.region, matchRef.GameId).Result;
+                //Thread.Sleep(12000);
                 
                 Console.WriteLine("Parsing last match info...");
                 // Figure out which participant the summoner was and gather relevant information from the match details
