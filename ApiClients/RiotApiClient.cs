@@ -1,6 +1,6 @@
 using System;
 using System.Threading;
-using System.Collections.Generic;
+using System.Threading.Tasks;
 using RiotSharp;
 using RiotSharp.Misc;
 using RiotSharp.Endpoints.MatchEndpoint;
@@ -35,7 +35,16 @@ namespace ApiClients
                 Console.WriteLine("checking last match state for monitored summoners."); // Discord client ready: " + this.discordStarted);
 
                 foreach (string summoner in StaticData.summonerToDiscordMappings.Keys) {
-                    var lastMatchInfo = this.retrieveLastMatchData(summoner);
+                    RelevantMatchInfo lastMatchInfo = null;
+                    var lastMatchRetrieval = Task.Run(() => this.retrieveLastMatchData(summoner));
+
+                    if (lastMatchRetrieval.Wait(TimeSpan.FromSeconds(30))) {
+                        lastMatchInfo = lastMatchRetrieval.Result;
+                    } else {
+                        Console.WriteLine("A request has timed out.");
+                        continue;
+                    }
+
                     Console.WriteLine("Last game end time: " + lastMatchInfo.finishTime + " Current time: " + DateTime.Now);
 
                     // Only fire off the gameFinished event for games that happened recently, and only if the discord client is ready to handle it
@@ -57,12 +66,12 @@ namespace ApiClients
             try {
                 Console.WriteLine("Retrieving summoner info...");
                 // Retrieve information about the last match the summoner played
-                var summoner = this.api.Summoner.GetSummonerByNameAsync(Region.Na, summonerName).GetAwaiter().GetResult();
+                var summoner = this.api.Summoner.GetSummonerByNameAsync(Region.Na, summonerName).Result;
                 Console.WriteLine("Retrieving match list...");
-                var matchHistory = this.api.Match.GetMatchListAsync(this.region, summoner.AccountId).GetAwaiter().GetResult();
+                var matchHistory = this.api.Match.GetMatchListAsync(this.region, summoner.AccountId).Result;
                 var matchRef = matchHistory.Matches[0];
                 Console.WriteLine("Retrieving last match info...");
-                var match = this.api.Match.GetMatchAsync(this.region, matchRef.GameId).GetAwaiter().GetResult();
+                var match = this.api.Match.GetMatchAsync(this.region, matchRef.GameId).Result;
                 
                 Console.WriteLine("Parsing last match info...");
                 // Figure out which participant the summoner was and gather relevant information from the match details
