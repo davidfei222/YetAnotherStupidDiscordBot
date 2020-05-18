@@ -16,18 +16,13 @@ namespace ApiClients
         private RelevantMatchInfo lastMatchChecked;
         private RiotApiClient riotApiClient;
 
-        public DiscordApiClient()
+        public DiscordApiClient(RiotApiClient riotApiClient)
         {
             this.discordSocketClient = new DiscordSocketClient();
             this.commandService = new CommandService();
-            this.riotApiClient = new RiotApiClient();
+            this.riotApiClient = riotApiClient;
             // Start with a blank last match checked
             this.lastMatchChecked = new RelevantMatchInfo();
-        }
-
-        public void runMatchHistoryCheckLoop()
-        {
-            Task.Run(this.riotApiClient.matchHistoryCheckLoop);
         }
 
         //public static void Main(string[] args) => new DiscordApiClient().DiscordInitAsync().GetAwaiter().GetResult();
@@ -48,6 +43,38 @@ namespace ApiClients
 
             // Let the bot run infinitely
             await Task.Delay(-1);
+        }
+
+        private Task Log(LogMessage msg)
+        {
+	        Console.WriteLine(msg.ToString());
+	        return Task.CompletedTask;
+        }
+
+        private async Task HandleCommandAsync(SocketMessage messageParam)
+        {
+            await this.Log(new LogMessage(LogSeverity.Info, messageParam.Author.Username, "message received in " + messageParam.Channel.Name));
+            // Don't process the command if it was a system message
+            var message = messageParam as SocketUserMessage;
+            if (message == null) return;
+
+            // Create a number to track where the prefix ends and the command begins
+            int argPos = 0;
+
+            // Determine if the message is a command based on the prefix and make sure no bots trigger commands
+            if (!(message.HasCharPrefix('!', ref argPos) || 
+                    message.HasMentionPrefix(this.discordSocketClient.CurrentUser, ref argPos)) ||
+                    message.Author.IsBot) {
+                return;
+            }
+
+            // Create a WebSocket-based command context based on the message
+            var context = new SocketCommandContext(this.discordSocketClient, message);
+
+            // Execute the command with the command context we just
+            // created, along with the service provider for precondition checks.
+            var result = await this.commandService.ExecuteAsync(context: context, argPos: argPos, services: null);
+            if (!result.IsSuccess) Console.WriteLine(result.ErrorReason);
         }
 
         private Task Ready()
@@ -98,38 +125,6 @@ namespace ApiClients
             } else {
                 user.RemoveRoleAsync(role);
             }
-        }
-
-        private Task Log(LogMessage msg)
-        {
-	        Console.WriteLine(msg.ToString());
-	        return Task.CompletedTask;
-        }
-
-        private async Task HandleCommandAsync(SocketMessage messageParam)
-        {
-            await this.Log(new LogMessage(LogSeverity.Info, messageParam.Author.Username, "message received in " + messageParam.Channel.Name));
-            // Don't process the command if it was a system message
-            var message = messageParam as SocketUserMessage;
-            if (message == null) return;
-
-            // Create a number to track where the prefix ends and the command begins
-            int argPos = 0;
-
-            // Determine if the message is a command based on the prefix and make sure no bots trigger commands
-            if (!(message.HasCharPrefix('!', ref argPos) || 
-                    message.HasMentionPrefix(this.discordSocketClient.CurrentUser, ref argPos)) ||
-                    message.Author.IsBot) {
-                return;
-            }
-
-            // Create a WebSocket-based command context based on the message
-            var context = new SocketCommandContext(this.discordSocketClient, message);
-
-            // Execute the command with the command context we just
-            // created, along with the service provider for precondition checks.
-            var result = await this.commandService.ExecuteAsync(context: context, argPos: argPos, services: null);
-            if (!result.IsSuccess) Console.WriteLine(result.ErrorReason);
-        }
+        }  
     }
 }

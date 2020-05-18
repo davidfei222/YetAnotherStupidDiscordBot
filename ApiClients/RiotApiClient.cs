@@ -51,7 +51,7 @@ namespace ApiClients
                     if (lastMatchInfo == null) {
                         Console.WriteLine("Could not retrieve info about last match for " + summoner + ".");
                     } else if (DateTime.Now - lastMatchInfo.finishTime > TimeSpan.FromMinutes(15)) {
-                        Console.WriteLine("Summoner " + lastMatchInfo.summonerName + " has not lost a game recently enough to warrant a loss check.");
+                        Console.WriteLine("Summoner " + lastMatchInfo.summonerName + " has not played a game recently enough to warrant a loss check.");
                     } else {
                         gameFinished(lastMatchInfo);
                     }

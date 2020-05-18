@@ -7,7 +7,7 @@ namespace DiscordCommands
 {
     public class TestCommand : ModuleBase<SocketCommandContext>
     {
-        [Command("jalen")]
+        [Command("punishjalen")]
 	    [Summary("Assigns Jalen the punishment role for test purposes")]
         public async Task PunishJalen()
         {
@@ -16,7 +16,7 @@ namespace DiscordCommands
             await user.AddRoleAsync(punishmentRole);
         }
 
-        [Command("unjalen")]
+        [Command("unpunishjalen")]
 	    [Summary("Removes the punishment role from Jalen for test purposes")]
         public async Task UnPunishJalen()
         {

@@ -7,13 +7,14 @@ namespace YetAnotherStupidDiscordBot
     {
         public static void Main(string[] args) 
         {
-            var bot = new DiscordApiClient();
+            var riot = new RiotApiClient();
+            var discord = new DiscordApiClient(riot);
 
             // Start the match history check loop in a separate thread
-            bot.runMatchHistoryCheckLoop();
+            Task.Run(riot.matchHistoryCheckLoop);
             
             // Log in the discord client.
-            bot.DiscordInitAsync().GetAwaiter().GetResult();
+            discord.DiscordInitAsync().GetAwaiter().GetResult();
         }
     }
 }
