@@ -30,3 +30,6 @@ msbuild.wrn
 
 # Config files
 *.config
+
+# Audio files directory
+audiofiles/

@@ -70,7 +70,6 @@ namespace ApiClients
 
             // Create a WebSocket-based command context based on the message
             var context = new SocketCommandContext(this.discordSocketClient, message);
-
             // Execute the command with the command context we just
             // created, along with the service provider for precondition checks.
             var result = await this.commandService.ExecuteAsync(context: context, argPos: argPos, services: null);
@@ -110,7 +109,6 @@ namespace ApiClients
             }
 
             this.lastMatchChecked = lastMatchInfo;
-
             return 0;
         }
 
