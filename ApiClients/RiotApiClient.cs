@@ -46,9 +46,11 @@ namespace ApiClients
                         lastMatchInfo = retrieveTask.Result;
                     } else {
                         Console.WriteLine("The operation has timed out.");
+                        continue;
                     }
                 } catch(Exception ex) {
                     Console.WriteLine("The operation has failed: {0}. Skipping to next summoner...", ex.Message);
+                    continue;
                 }
                 
                 this.handleLastMatchEvent(lastMatchInfo);
