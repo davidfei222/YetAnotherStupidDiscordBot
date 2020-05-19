@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.IO;
 using Discord.Commands;
@@ -12,10 +13,23 @@ namespace DiscordCommands
 {
     public class PlayAudioFileCommand : ModuleBase<SocketCommandContext>
     {
-        [Command("play", RunMode = RunMode.Async)]
+        private static string downloadedFileDir = "C:\\Users\\David Fei\\Documents\\YetAnotherStupidDiscordBot\\audiofiles\\";
+
+        [Command("playfile", RunMode = RunMode.Async)]
         [Summary("Plays an audio file in voice")]
         public async Task JoinChannelAndPlayAudio(IVoiceChannel channel = null)
         {
+            string downloadedFileName = null;
+            // Attempt to download the attachment if it exists
+            if (Context.Message.Attachments != null && Context.Message.Attachments.Count > 0) {
+                downloadedFileName = this.downloadAttachedFiles(Context.Message);
+            } else {
+                await Context.Channel.SendMessageAsync("You must attach a valid audio file to be played.");
+                return;
+            }
+
+            if (downloadedFileName == null) return;
+
             // Get the audio channel
             channel = channel ?? (Context.User as IGuildUser)?.VoiceChannel;
 
@@ -26,7 +40,7 @@ namespace DiscordCommands
 
             // For the next step with transmitting audio, you would want to pass this Audio Client in to a service.
             var audioClient = await channel.ConnectAsync(true, false);
-            await this.SendAsync(audioClient, "C:\\Users\\David Fei\\Documents\\YetAnotherStupidDiscordBot\\audiofiles\\peanutbutter.mp3");
+            await this.SendAsync(audioClient, PlayAudioFileCommand.downloadedFileDir + downloadedFileName);
         }
 
         private Process CreateStream(string path)
@@ -53,15 +67,21 @@ namespace DiscordCommands
             }
         }
 
-        private void downloadAttachedFiles(IMessage message)
+        private string downloadAttachedFiles(IMessage message)
         {
             // Get the attached audio files
             var attachments = Context.Message.Attachments;
+            var file = attachments.ElementAt(0);
             WebClient myWebClient = new WebClient();
 
-            foreach (IAttachment file in attachments) {
-                Console.WriteLine("Audio file attached: " + file.ProxyUrl);
-                byte[] buffer = myWebClient.DownloadData(file.ProxyUrl);
+            Console.WriteLine("Audio file {0} attached: {1}",  file.Filename, file.Url);
+            try {
+                myWebClient.DownloadFile(file.Url, PlayAudioFileCommand.downloadedFileDir + file.Filename);
+                return file.Filename;
+            } catch(Exception ex) {
+                Console.WriteLine(ex);
+                Context.Channel.SendMessageAsync("Could not download attachment.  Please try again.");
+                return null;
             }
         }
     }

@@ -87,7 +87,7 @@ namespace ApiClients
                 return this.parseMatchData(match, summoner);
             }
             catch (Exception ex) {
-                Console.WriteLine(ex.Message);
+                Console.WriteLine(ex);
                 throw ex;
             }
         }
