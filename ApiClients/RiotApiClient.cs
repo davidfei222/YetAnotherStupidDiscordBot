@@ -35,18 +35,7 @@ namespace ApiClients
                 Console.WriteLine("checking last match state for monitored summoners."); // Discord client ready: " + this.discordStarted);
 
                 foreach (string summoner in StaticData.summonerToDiscordMappings.Keys) {
-                    CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
-                    RelevantMatchInfo lastMatchInfo = null;
-                    var lastMatchRetrieval = Task.Factory.StartNew(() => this.retrieveLastMatchData(summoner), cancelTokenSource.Token);
-
-                    if (lastMatchRetrieval.Wait(TimeSpan.FromSeconds(30))) {
-                        lastMatchInfo = lastMatchRetrieval.Result;
-                    } else {
-                        cancelTokenSource.Cancel();
-                        Console.WriteLine("A request has timed out.");
-                        continue;
-                    }
-
+                    var lastMatchInfo = this.retrieveLastMatchData(summoner);
                     Console.WriteLine("Last game end time: " + lastMatchInfo.finishTime + " Current time: " + DateTime.Now);
 
                     // Only fire off the gameFinished event for games that happened recently, and only if the discord client is ready to handle it
