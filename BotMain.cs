@@ -1,4 +1,5 @@
 using System;
+using System.Timers;
 using System.Threading.Tasks;
 using ApiClients;
 
@@ -8,6 +9,8 @@ namespace YetAnotherStupidDiscordBot
     {
         public static void Main(string[] args) 
         {
+            // Timer that will run the match history check every 30 seconds.
+            var checkMatchHistoryTimer = new System.Timers.Timer(30000);
             var riot = new RiotApiClient();
             var discord = new DiscordApiClient(riot);
 
@@ -15,8 +18,9 @@ namespace YetAnotherStupidDiscordBot
             //AppDomain.CurrentDomain.ProcessExit += new EventHandler((object sender, EventArgs args) => {discord.programExitHandler();});
             Console.CancelKeyPress += new ConsoleCancelEventHandler((object sender, ConsoleCancelEventArgs args) => {discord.programExitHandler();});
 
-            // Start the match history check loop in a separate thread
-            Task.Run(riot.matchHistoryCheckLoop);
+            // Register the match history check to its timer
+            checkMatchHistoryTimer.Elapsed += riot.checkMatchHistories;
+            checkMatchHistoryTimer.Enabled = true;
             
             // Log in the discord client.
             discord.DiscordInitAsync().GetAwaiter().GetResult();

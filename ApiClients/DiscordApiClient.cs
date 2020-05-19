@@ -90,7 +90,7 @@ namespace ApiClients
 
         private int gameFinishedHandler(RelevantMatchInfo lastMatchInfo)
         {
-            Console.WriteLine("A recently finished game was detected for " + lastMatchInfo.summonerName + ".");
+            Console.WriteLine("A recently finished game was detected for {0}.", lastMatchInfo.summonerName);
 
             // If the last match has already been detected recently don't do anything
             if (lastMatchInfo.finishTime.Equals(this.lastMatchChecked.finishTime)) {

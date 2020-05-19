@@ -29,47 +29,41 @@ namespace ApiClients
 
         // This method runs the core functionality of this component - checking match history and sending info over to the 
         // Discord client whenever it detects a game loss.
-        public async Task matchHistoryCheckLoop()
+        public async void checkMatchHistories(Object source, System.Timers.ElapsedEventArgs e)
         {
-            while (true) {
-                Console.WriteLine("checking last match state for monitored summoners."); // Discord client ready: " + this.discordStarted);
+            Console.WriteLine("checking last match state for monitored summoners at {0}.", e.SignalTime);
 
-                foreach (string summoner in StaticData.summonerToDiscordMappings.Keys) {
-                    RelevantMatchInfo lastMatchInfo = null;
-                    CancellationTokenSource timeoutCancelTokenSource = new CancellationTokenSource();
+            foreach (string summoner in StaticData.summonerToDiscordMappings.Keys) {
+                RelevantMatchInfo lastMatchInfo = null;
+                CancellationTokenSource timeoutCancelTokenSource = new CancellationTokenSource();
 
-                    try {
-                        Task<RelevantMatchInfo> retrieveTask = this.retrieveLastMatchData(summoner);
-                        var completedTask = await Task.WhenAny(retrieveTask, Task.Delay(10000, timeoutCancelTokenSource.Token));
+                try {
+                    Task<RelevantMatchInfo> retrieveTask = this.retrieveLastMatchData(summoner);
+                    var completedTask = await Task.WhenAny(retrieveTask, Task.Delay(10000, timeoutCancelTokenSource.Token));
 
-                        if (completedTask == retrieveTask) {
-                            timeoutCancelTokenSource.Cancel();
-                            lastMatchInfo = retrieveTask.Result;
-                        } else {
-                            Console.WriteLine("The operation has timed out.");
-                            continue;
-                        }
-                    } catch(Exception ex) {
-                        Console.WriteLine("The operation has failed: " + ex.Message + ". Skipping to next summoner...");
-                        continue;
+                    if (completedTask == retrieveTask) {
+                        timeoutCancelTokenSource.Cancel();
+                        lastMatchInfo = retrieveTask.Result;
+                    } else {
+                        Console.WriteLine("The operation has timed out.");
                     }
-                    
-                    this.handleLastMatchEvent(lastMatchInfo);
+                } catch(Exception ex) {
+                    Console.WriteLine("The operation has failed: {0}. Skipping to next summoner...", ex.Message);
                 }
-
-                Thread.Sleep(30000);
+                
+                this.handleLastMatchEvent(lastMatchInfo);
             }
         }
 
         private void handleLastMatchEvent(RelevantMatchInfo lastMatchInfo)
         {
-            Console.WriteLine("Last game end time: " + lastMatchInfo.finishTime + " Current time: " + DateTime.Now);
+            Console.WriteLine("Last game end time: {0} Current time: {1}", lastMatchInfo.finishTime, DateTime.Now);
 
             // Only fire off the gameFinished event for games that happened recently, and only if the discord client is ready to handle it
             if (lastMatchInfo == null) {
-                Console.WriteLine("Could not retrieve info about last match for " + lastMatchInfo.summonerName + ".");
+                Console.WriteLine("Could not retrieve info about last match for {0}.", lastMatchInfo.summonerName);
             } else if (DateTime.Now - lastMatchInfo.finishTime > TimeSpan.FromMinutes(15)) {
-                Console.WriteLine("Summoner " + lastMatchInfo.summonerName + " has not played a game recently enough to warrant a loss check.");
+                Console.WriteLine("Summoner {0} has not played a game recently enough to warrant a loss check.", lastMatchInfo.summonerName);
             } else {
                 gameFinished(lastMatchInfo);
             }
