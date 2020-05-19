@@ -75,7 +75,6 @@ namespace ApiClients
                 var matchRef = matchHistory.Matches[0];
                 Console.WriteLine("Retrieving last match info...");
                 var match = this.api.Match.GetMatchAsync(this.region, matchRef.GameId).Result;
-                //Thread.Sleep(12000);
                 
                 Console.WriteLine("Parsing last match info...");
                 // Figure out which participant the summoner was and gather relevant information from the match details
