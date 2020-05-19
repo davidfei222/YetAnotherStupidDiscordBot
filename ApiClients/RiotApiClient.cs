@@ -34,10 +34,9 @@ namespace ApiClients
             Console.WriteLine("checking last match state for monitored summoners at {0}.", e.SignalTime);
 
             foreach (string summoner in StaticData.summonerToDiscordMappings.Keys) {
-                RelevantMatchInfo lastMatchInfo = null;
-                CancellationTokenSource timeoutCancelTokenSource = new CancellationTokenSource();
-
                 try {
+                    RelevantMatchInfo lastMatchInfo = null;
+                    CancellationTokenSource timeoutCancelTokenSource = new CancellationTokenSource();
                     Task<RelevantMatchInfo> retrieveTask = this.retrieveLastMatchData(summoner);
                     var completedTask = await Task.WhenAny(retrieveTask, Task.Delay(10000, timeoutCancelTokenSource.Token));
 
@@ -48,12 +47,12 @@ namespace ApiClients
                         Console.WriteLine("The operation has timed out.");
                         continue;
                     }
+
+                    this.handleLastMatchEvent(lastMatchInfo);
                 } catch(Exception ex) {
                     Console.WriteLine("The operation has failed: {0}. Skipping to next summoner...", ex.Message);
                     continue;
-                }
-                
-                this.handleLastMatchEvent(lastMatchInfo);
+                } 
             }
         }
 
@@ -87,7 +86,7 @@ namespace ApiClients
                 // Figure out which participant the summoner was and gather relevant information from the match details
                 return this.parseMatchData(match, summoner);
             }
-            catch (RiotSharpException ex) {
+            catch (Exception ex) {
                 Console.WriteLine(ex.Message);
                 throw ex;
             }
