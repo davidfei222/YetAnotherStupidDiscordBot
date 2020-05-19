@@ -29,40 +29,63 @@ namespace ApiClients
 
         // This method runs the core functionality of this component - checking match history and sending info over to the 
         // Discord client whenever it detects a game loss.
-        public void matchHistoryCheckLoop()
+        public async Task matchHistoryCheckLoop()
         {
             while (true) {
                 Console.WriteLine("checking last match state for monitored summoners."); // Discord client ready: " + this.discordStarted);
 
                 foreach (string summoner in StaticData.summonerToDiscordMappings.Keys) {
-                    var lastMatchInfo = this.retrieveLastMatchData(summoner);
-                    Console.WriteLine("Last game end time: " + lastMatchInfo.finishTime + " Current time: " + DateTime.Now);
+                    RelevantMatchInfo lastMatchInfo = null;
+                    CancellationTokenSource timeoutCancelTokenSource = new CancellationTokenSource();
 
-                    // Only fire off the gameFinished event for games that happened recently, and only if the discord client is ready to handle it
-                    if (lastMatchInfo == null) {
-                        Console.WriteLine("Could not retrieve info about last match for " + summoner + ".");
-                    } else if (DateTime.Now - lastMatchInfo.finishTime > TimeSpan.FromMinutes(15)) {
-                        Console.WriteLine("Summoner " + lastMatchInfo.summonerName + " has not played a game recently enough to warrant a loss check.");
-                    } else {
-                        gameFinished(lastMatchInfo);
+                    try {
+                        Task<RelevantMatchInfo> retrieveTask = this.retrieveLastMatchData(summoner);
+                        var completedTask = await Task.WhenAny(retrieveTask, Task.Delay(10000, timeoutCancelTokenSource.Token));
+
+                        if (completedTask == retrieveTask) {
+                            timeoutCancelTokenSource.Cancel();
+                            lastMatchInfo = retrieveTask.Result;
+                        } else {
+                            Console.WriteLine("The operation has timed out.");
+                            continue;
+                        }
+                    } catch(Exception ex) {
+                        Console.WriteLine("The operation has failed: " + ex.Message + ". Skipping to next summoner...");
+                        continue;
                     }
+                    
+                    this.handleLastMatchEvent(lastMatchInfo);
                 }
 
                 Thread.Sleep(30000);
             }
         }
 
-        public RelevantMatchInfo retrieveLastMatchData(string summonerName)
+        private void handleLastMatchEvent(RelevantMatchInfo lastMatchInfo)
+        {
+            Console.WriteLine("Last game end time: " + lastMatchInfo.finishTime + " Current time: " + DateTime.Now);
+
+            // Only fire off the gameFinished event for games that happened recently, and only if the discord client is ready to handle it
+            if (lastMatchInfo == null) {
+                Console.WriteLine("Could not retrieve info about last match for " + lastMatchInfo.summonerName + ".");
+            } else if (DateTime.Now - lastMatchInfo.finishTime > TimeSpan.FromMinutes(15)) {
+                Console.WriteLine("Summoner " + lastMatchInfo.summonerName + " has not played a game recently enough to warrant a loss check.");
+            } else {
+                gameFinished(lastMatchInfo);
+            }
+        }
+
+        public async Task<RelevantMatchInfo> retrieveLastMatchData(string summonerName)
         {
             try {
                 Console.WriteLine("Retrieving summoner info...");
                 // Retrieve information about the last match the summoner played
-                var summoner = this.api.Summoner.GetSummonerByNameAsync(Region.Na, summonerName).Result;
+                var summoner = await this.api.Summoner.GetSummonerByNameAsync(Region.Na, summonerName);
                 Console.WriteLine("Retrieving match list...");
-                var matchHistory = this.api.Match.GetMatchListAsync(this.region, summoner.AccountId).Result;
+                var matchHistory = await this.api.Match.GetMatchListAsync(this.region, summoner.AccountId);
                 var matchRef = matchHistory.Matches[0];
                 Console.WriteLine("Retrieving last match info...");
-                var match = this.api.Match.GetMatchAsync(this.region, matchRef.GameId).Result;
+                var match = await this.api.Match.GetMatchAsync(this.region, matchRef.GameId);
                 
                 Console.WriteLine("Parsing last match info...");
                 // Figure out which participant the summoner was and gather relevant information from the match details
@@ -70,10 +93,8 @@ namespace ApiClients
             }
             catch (RiotSharpException ex) {
                 Console.WriteLine(ex.Message);
+                throw ex;
             }
-            
-            // If an exception occurs return null
-            return null;
         }
 
         private RelevantMatchInfo parseMatchData(Match match, Summoner summoner)
