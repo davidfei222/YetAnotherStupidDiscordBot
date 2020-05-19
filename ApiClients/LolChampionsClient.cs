@@ -9,7 +9,7 @@ namespace ApiClients
 {
     public class LolChampionsClient
     {
-        private static string champsUrl = "http://ddragon.leagueoflegends.com/cdn/6.24.1/data/en_US/champion.json";
+        private static string champsUrl = "http://ddragon.leagueoflegends.com/cdn/10.10.3208608/data/en_US/champion.json";
         private HttpClient httpClient;
         private ChampionData champData;
 
