@@ -11,7 +11,7 @@ namespace DiscordCommands
 {
     public class PlayAudioFileCommand : ModuleBase<SocketCommandContext>
     {
-        private static string downloadedFileDir = "C:\\Users\\David Fei\\Documents\\YetAnotherStupidDiscordBot\\audiofiles\\";
+        private static string downloadedFileDir = "C:\\Users\\David\\Documents\\YetAnotherStupidDiscordBot\\audiofiles\\";
 
         [Command("playfile", RunMode = RunMode.Async)]
         [Summary("Plays an audio file in voice")]
@@ -36,7 +36,6 @@ namespace DiscordCommands
                 return;
             }
 
-            // For the next step with transmitting audio, you would want to pass this Audio Client in to a service.
             var audioClient = await channel.ConnectAsync(true, false);
             await this.SendAsync(audioClient, PlayAudioFileCommand.downloadedFileDir + downloadedFileName);
         }
@@ -60,8 +59,12 @@ namespace DiscordCommands
             using (var output = ffmpeg.StandardOutput.BaseStream)
             using (var discord = client.CreatePCMStream(AudioApplication.Mixed))
             {
-                try { await output.CopyToAsync(discord); }
-                finally { await discord.FlushAsync(); }
+                try {
+                    await output.CopyToAsync(discord);
+                } finally {
+                    await discord.FlushAsync();
+                    await client.StopAsync();
+                }
             }
         }
 
