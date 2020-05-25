@@ -1,6 +1,5 @@
 using System;
 using System.Timers;
-using System.Threading.Tasks;
 using ApiClients;
 
 namespace YetAnotherStupidDiscordBot
@@ -10,7 +9,7 @@ namespace YetAnotherStupidDiscordBot
         public static void Main(string[] args) 
         {
             // Timer that will run the match history check every 30 seconds.
-            var checkMatchHistoryTimer = new System.Timers.Timer(30000);
+            var checkMatchHistoryTimer = new Timer(30000);
             var riot = new RiotApiClient();
             var discord = new DiscordApiClient(riot);
 
