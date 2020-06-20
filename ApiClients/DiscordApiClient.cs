@@ -12,7 +12,9 @@ namespace ApiClients
     {
         private DiscordSocketClient discordSocketClient;
         private CommandService commandService;
-        private string lossAnnounceFmt = "@here Summoner {0} has just lost a game as {1}!\nHis k/d/a was {2}/{3}/{4}.\nWhat a fucking loser!";
+        private string lossAnnounceFmt = "@here Summoner {0} has just lost a game as {1}!\nHis k/d/a was {2}/{3}/{4}.\n";
+        private string standardLossMsg = "What a fucking loser!";
+        private string badLossMsg = "Uninstall League of Legends right now, you're honestly too trash at this game to play";
         private RelevantMatchInfo lastMatchChecked;
         private RiotApiClient riotApiClient;
 
@@ -100,7 +102,10 @@ namespace ApiClients
                 // If game lost, announce the loss and assign the punishment role
                 SocketTextChannel channel = this.discordSocketClient.GetChannel(StaticData.announcementChannelId) as SocketTextChannel;
                 string msg = String.Format(this.lossAnnounceFmt, lastMatchInfo.summonerName, lastMatchInfo.championName, lastMatchInfo.kills, lastMatchInfo.deaths, lastMatchInfo.assists);
-                channel.SendMessageAsync(msg, true);
+                // Special message for when the K/D ratio was particularly bad
+                var id = StaticData.summonerToDiscordMappings[lastMatchInfo.summonerName];
+                string msgAppend = ((double)lastMatchInfo.kills/lastMatchInfo.deaths < 1) ? $"<@{id}> " + this.badLossMsg : this.standardLossMsg;
+                channel.SendMessageAsync(msg + msgAppend, true);
                 this.addOrRemoveRole(StaticData.summonerToDiscordMappings[lastMatchInfo.summonerName], StaticData.punishmentRoleId, true);
             } else if (lastMatchInfo.winner) {
                 Console.WriteLine("The game was won!");
