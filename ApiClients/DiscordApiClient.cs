@@ -104,7 +104,7 @@ namespace ApiClients
                 string msg = String.Format(this.lossAnnounceFmt, lastMatchInfo.summonerName, lastMatchInfo.championName, lastMatchInfo.kills, lastMatchInfo.deaths, lastMatchInfo.assists);
                 // Special message for when the K/D ratio was particularly bad
                 var id = StaticData.summonerToDiscordMappings[lastMatchInfo.summonerName];
-                string msgAppend = ((double)lastMatchInfo.kills/lastMatchInfo.deaths < 1) ? $"<@{id}> " + this.badLossMsg : this.standardLossMsg;
+                string msgAppend = ((double)lastMatchInfo.kills/lastMatchInfo.deaths < 0.7) ? $"<@{id}> " + this.badLossMsg : this.standardLossMsg;
                 channel.SendMessageAsync(msg + msgAppend, true);
                 this.addOrRemoveRole(StaticData.summonerToDiscordMappings[lastMatchInfo.summonerName], StaticData.punishmentRoleId, true);
             } else if (lastMatchInfo.winner) {
