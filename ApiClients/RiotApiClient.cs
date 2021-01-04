@@ -33,11 +33,11 @@ namespace ApiClients
         {
             Console.WriteLine("checking last match state for monitored summoners at {0}.", e.SignalTime);
 
-            foreach (string summoner in StaticData.summonerToDiscordMappings.Keys) {
+            foreach (string summonerAcctId in StaticData.summonerToDiscordMappings.Keys) {
                 try {
                     RelevantMatchInfo lastMatchInfo = null;
                     CancellationTokenSource timeoutCancelTokenSource = new CancellationTokenSource();
-                    Task<RelevantMatchInfo> retrieveTask = this.retrieveLastMatchData(summoner);
+                    Task<RelevantMatchInfo> retrieveTask = this.retrieveLastMatchData(summonerAcctId);
                     var completedTask = await Task.WhenAny(retrieveTask, Task.Delay(10000, timeoutCancelTokenSource.Token));
 
                     if (completedTask == retrieveTask) {
@@ -70,12 +70,12 @@ namespace ApiClients
             }
         }
 
-        public async Task<RelevantMatchInfo> retrieveLastMatchData(string summonerName)
+        public async Task<RelevantMatchInfo> retrieveLastMatchData(string accountId)
         {
             try {
                 Console.WriteLine("Retrieving summoner info...");
                 // Retrieve information about the last match the summoner played
-                var summoner = await this.api.Summoner.GetSummonerByNameAsync(Region.Na, summonerName);
+                var summoner = await this.api.Summoner.GetSummonerByAccountIdAsync(Region.Na, accountId);
                 Console.WriteLine("Retrieving match list...");
                 var matchHistory = await this.api.Match.GetMatchListAsync(this.region, summoner.AccountId);
                 var matchRef = matchHistory.Matches[0];
