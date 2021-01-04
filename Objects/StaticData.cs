@@ -13,7 +13,7 @@ namespace Objects
         public static readonly Dictionary<string, ulong> summonerToDiscordMappings = new Dictionary<string, ulong>()
         {
             // Jalen
-            {"AnimePenguin", 279845556166197251}
+            {"mymomdodged", 279845556166197251}
         }; 
     }
 }
