@@ -103,14 +103,14 @@ namespace ApiClients
                 SocketTextChannel channel = this.discordSocketClient.GetChannel(StaticData.announcementChannelId) as SocketTextChannel;
                 string msg = String.Format(this.lossAnnounceFmt, lastMatchInfo.summonerName, lastMatchInfo.championName, lastMatchInfo.kills, lastMatchInfo.deaths, lastMatchInfo.assists);
                 // Special message for when the K/D ratio was particularly bad
-                var id = StaticData.summonerToDiscordMappings[lastMatchInfo.summonerName];
+                var id = StaticData.summonerToDiscordMappings[lastMatchInfo.accountId];
                 string msgAppend = ((double)lastMatchInfo.kills/lastMatchInfo.deaths < 0.7) ? $"<@{id}> " + this.badLossMsg : this.standardLossMsg;
                 channel.SendMessageAsync(msg + msgAppend, true);
-                this.addOrRemoveRole(StaticData.summonerToDiscordMappings[lastMatchInfo.summonerName], StaticData.punishmentRoleId, true);
+                this.addOrRemoveRole(id, StaticData.punishmentRoleId, true);
             } else if (lastMatchInfo.winner) {
                 Console.WriteLine("The game was won!");
                 // If game won, remove the punishment role
-                this.addOrRemoveRole(StaticData.summonerToDiscordMappings[lastMatchInfo.summonerName], StaticData.punishmentRoleId, false);
+                this.addOrRemoveRole(StaticData.summonerToDiscordMappings[lastMatchInfo.accountId], StaticData.punishmentRoleId, false);
             }
 
             this.lastMatchChecked = lastMatchInfo;

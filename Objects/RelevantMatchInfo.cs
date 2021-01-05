@@ -4,6 +4,7 @@ namespace Objects
 {
     public class RelevantMatchInfo
     {
+        public string accountId {get; set;}
         public DateTime finishTime {get; set;}
         public string summonerName {get; set;}
         public string championName {get; set;}

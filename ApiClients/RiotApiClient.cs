@@ -63,7 +63,7 @@ namespace ApiClients
             // Only fire off the gameFinished event for games that happened recently, and only if the discord client is ready to handle it
             if (lastMatchInfo == null) {
                 Console.WriteLine("Could not retrieve info about last match for {0}.", lastMatchInfo.summonerName);
-            } else if (DateTime.Now - lastMatchInfo.finishTime > TimeSpan.FromMinutes(15)) {
+            } else if (DateTime.Now - lastMatchInfo.finishTime > TimeSpan.FromMinutes(20)) {
                 Console.WriteLine("Summoner {0} has not played a game recently enough to warrant a loss check.", lastMatchInfo.summonerName);
             } else {
                 gameFinished(lastMatchInfo);
@@ -105,6 +105,7 @@ namespace ApiClients
                         
                         return new RelevantMatchInfo()
                         {
+                            accountId = summoner.AccountId,
                             finishTime = match.GameCreation.ToLocalTime() + match.GameDuration,
                             summonerName = summoner.Name,
                             championName = champName,
