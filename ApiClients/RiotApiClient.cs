@@ -34,25 +34,15 @@ namespace ApiClients
             Console.WriteLine("checking last match state for monitored summoners at {0}.", e.SignalTime);
 
             foreach (string summonerAcctId in StaticData.summonerToDiscordMappings.Keys) {
+                RelevantMatchInfo lastMatchInfo = null;
                 try {
-                    RelevantMatchInfo lastMatchInfo = null;
-                    CancellationTokenSource timeoutCancelTokenSource = new CancellationTokenSource();
-                    Task<RelevantMatchInfo> retrieveTask = this.retrieveLastMatchData(summonerAcctId);
-                    var completedTask = await Task.WhenAny(retrieveTask, Task.Delay(10000, timeoutCancelTokenSource.Token));
-
-                    if (completedTask == retrieveTask) {
-                        timeoutCancelTokenSource.Cancel();
-                        lastMatchInfo = retrieveTask.Result;
-                    } else {
-                        Console.WriteLine("The operation has timed out.");
-                        continue;
-                    }
-
-                    this.handleLastMatchEvent(lastMatchInfo);
+                    lastMatchInfo = await this.retrieveLastMatchData(summonerAcctId);
                 } catch(Exception ex) {
                     Console.WriteLine("The operation has failed: {0}. Skipping to next summoner...", ex.Message);
                     continue;
-                } 
+                }
+
+                this.handleLastMatchEvent(lastMatchInfo);
             }
         }
 
