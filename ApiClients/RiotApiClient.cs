@@ -29,20 +29,30 @@ namespace ApiClients
 
         // This method runs the core functionality of this component - checking match history and sending info over to the 
         // Discord client whenever it detects a game loss.
-        public async void checkMatchHistories(Object source, System.Timers.ElapsedEventArgs e)
+        public void checkMatchHistories(Object source, System.Timers.ElapsedEventArgs e)
         {
             Console.WriteLine("checking last match state for monitored summoners at {0}.", e.SignalTime);
 
             foreach (string summonerAcctId in StaticData.summonerToDiscordMappings.Keys) {
-                RelevantMatchInfo lastMatchInfo = null;
                 try {
-                    lastMatchInfo = await this.retrieveLastMatchData(summonerAcctId);
+                    RelevantMatchInfo lastMatchInfo = null;
+                    CancellationTokenSource timeoutCancelTokenSource = new CancellationTokenSource();
+                    Task<RelevantMatchInfo> retrieveTask = this.retrieveLastMatchData(summonerAcctId);
+                    var completedTask = Task.WhenAny(retrieveTask, Task.Delay(10000, timeoutCancelTokenSource.Token)).Result;
+
+                    if (completedTask == retrieveTask) {
+                        timeoutCancelTokenSource.Cancel();
+                        lastMatchInfo = retrieveTask.Result;
+                    } else {
+                        Console.WriteLine("The operation has timed out.");
+                        continue;
+                    }
+
+                    this.handleLastMatchEvent(lastMatchInfo);
                 } catch(Exception ex) {
                     Console.WriteLine("The operation has failed: {0}. Skipping to next summoner...", ex.Message);
                     continue;
                 }
-
-                this.handleLastMatchEvent(lastMatchInfo);
             }
         }
 
