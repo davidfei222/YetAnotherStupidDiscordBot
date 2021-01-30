@@ -8,8 +8,8 @@ namespace YetAnotherStupidDiscordBot
     {
         public static void Main(string[] args) 
         {
-            // Timer that will run the match history check every 30 seconds.
-            var checkMatchHistoryTimer = new Timer(30000);
+            // Timer that will run the match history check every 10 seconds.
+            var checkMatchHistoryTimer = new Timer(10000);
             var riot = new RiotApiClient();
             var discord = new DiscordApiClient(riot);
 

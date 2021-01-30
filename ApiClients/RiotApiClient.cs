@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using System.ComponentModel;
 using RiotSharp;
 using RiotSharp.Misc;
 using RiotSharp.Endpoints.MatchEndpoint;
@@ -29,16 +30,16 @@ namespace ApiClients
 
         // This method runs the core functionality of this component - checking match history and sending info over to the 
         // Discord client whenever it detects a game loss.
-        public void checkMatchHistories(Object source, System.Timers.ElapsedEventArgs e)
+        public async void checkMatchHistories(Object source, System.Timers.ElapsedEventArgs e)
         {
             Console.WriteLine("checking last match state for monitored summoners at {0}.", e.SignalTime);
 
             foreach (string summonerAcctId in StaticData.summonerToDiscordMappings.Keys) {
                 try {
-                    RelevantMatchInfo lastMatchInfo = null;
+                     RelevantMatchInfo lastMatchInfo = null;
                     CancellationTokenSource timeoutCancelTokenSource = new CancellationTokenSource();
                     Task<RelevantMatchInfo> retrieveTask = this.retrieveLastMatchData(summonerAcctId);
-                    var completedTask = Task.WhenAny(retrieveTask, Task.Delay(10000, timeoutCancelTokenSource.Token)).Result;
+                    var completedTask = await Task.WhenAny(retrieveTask, Task.Delay(10000, timeoutCancelTokenSource.Token));
 
                     if (completedTask == retrieveTask) {
                         timeoutCancelTokenSource.Cancel();
