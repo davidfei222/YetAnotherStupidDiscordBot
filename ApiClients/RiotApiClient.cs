@@ -36,7 +36,7 @@ namespace ApiClients
 
             foreach (string summonerAcctId in StaticData.summonerToDiscordMappings.Keys) {
                 try {
-                     RelevantMatchInfo lastMatchInfo = null;
+                    RelevantMatchInfo lastMatchInfo = null;
                     CancellationTokenSource timeoutCancelTokenSource = new CancellationTokenSource();
                     Task<RelevantMatchInfo> retrieveTask = this.retrieveLastMatchData(summonerAcctId);
                     var completedTask = await Task.WhenAny(retrieveTask, Task.Delay(10000, timeoutCancelTokenSource.Token));
